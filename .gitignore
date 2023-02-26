@@ -1,0 +1,10 @@
+# JetBrains stuff
+.idea/
+.goland/
+*.iml
+
+# Visual Studio Code
+.vscode/
+
+# data
+data/
