@@ -1,0 +1,8 @@
+database:
+  host: 127.0.0.1
+  port: 5432
+  user: user
+  pass: cGFzcw== # base64 encoded
+  name: wallet
+server:
+  port: 8080

@@ -7,4 +7,8 @@
 .vscode/
 
 # data
-data/
+data/*
+
+# configs
+configs/*
+!configs/example.yaml
