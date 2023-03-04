@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/mustan989/wallet/config"
+	"github.com/mustan989/wallet/app/config"
 )
 
 func Connect(ctx context.Context, database *config.Database) (*pgxpool.Pool, error) {
