@@ -31,10 +31,10 @@ func (w *wallet) CountAll(ctx context.Context, filter *model.WalletFilter) (coun
 		From(walletsTable)
 
 	if filter.NameLike != "" {
-		sb.Where(sb.Like("name", fmt.Sprint("%", sb.Var(filter.NameLike), "%")))
+		sb.Where(sb.Like("name", fmt.Sprint("%", filter.NameLike, "%")))
 	}
 	if filter.DescriptionLike != "" {
-		sb.Where(sb.Like("description", fmt.Sprint("%", sb.Var(filter.DescriptionLike), "%")))
+		sb.Where(sb.Like("description", fmt.Sprint("%", filter.DescriptionLike, "%")))
 	}
 	if filter.Currency != "" {
 		sb.Where(sb.Equal("currency", filter.Currency))
@@ -56,10 +56,10 @@ func (w *wallet) FindAll(ctx context.Context, filter *model.WalletFilter) (data 
 		From(walletsTable)
 
 	if filter.NameLike != "" {
-		sb.Where(sb.Like("name", fmt.Sprint("%", sb.Var(filter.NameLike), "%")))
+		sb.Where(sb.Like("name", fmt.Sprint("%", filter.NameLike, "%")))
 	}
 	if filter.DescriptionLike != "" {
-		sb.Where(sb.Like("description", fmt.Sprint("%", sb.Var(filter.DescriptionLike), "%")))
+		sb.Where(sb.Like("description", fmt.Sprint("%", filter.DescriptionLike, "%")))
 	}
 	if filter.Currency != "" {
 		sb.Where(sb.Equal("currency", filter.Currency))
@@ -103,7 +103,7 @@ func (w *wallet) FindByID(ctx context.Context, id uint64) (data *model.Wallet, e
 	sb := walletsBuilder.NewSelectBuilder().
 		Select("id", "name", "description", "currency", "amount", "personal", "created_at", "updated_at", "deleted_at").
 		From(walletsTable)
-	sb.Where(sb.E("id", id))
+	sb.Where(sb.E("id", id)).Limit(1)
 
 	sql, args := sb.Build()
 
@@ -165,6 +165,10 @@ func (w *wallet) Update(ctx context.Context, data *model.Wallet) error {
 	if err := w.pool.QueryRow(ctx, sql, args...).Scan(
 		&data.ID, &data.Name, &data.Description, &data.Currency, &data.Amount, &data.Personal, &data.CreatedAt, &data.UpdatedAt, &data.DeletedAt,
 	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return repository.ErrWalletNotFound
+		}
+
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
 			return repository.ErrWalletConflict

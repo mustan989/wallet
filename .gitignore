@@ -9,6 +9,12 @@
 # data
 data/*
 
+# testing
+test/*
+
 # configs
 configs/*
 !configs/example.yaml
+
+# .gitkeep
+!*.gitkeep
