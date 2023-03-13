@@ -1,5 +1,7 @@
 package logger
 
+func Default() Logger { return defaultLogger }
+
 var defaultLogger Logger = &logger{outputFormat: JSON}
 
 func Debugf(format string, a ...any) { defaultLogger.Debugf(format, a...) }

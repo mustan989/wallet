@@ -13,12 +13,12 @@ type Operation func(ctx context.Context) error
 
 // GracefulShutdown waits for termination syscalls and doing clean up operations after received it
 func GracefulShutdown(ctx context.Context, operations map[string]Operation, opts ...Option) <-chan struct{} {
-	s := settings{
+	s := &settings{
 		timeout: 5 * time.Second,
 		logger:  defaultLogger,
 	}
 	for _, opt := range opts {
-		opt(&s)
+		opt(s)
 	}
 
 	wait := make(chan struct{})

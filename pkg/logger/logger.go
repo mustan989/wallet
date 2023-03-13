@@ -21,7 +21,7 @@ type Logger interface {
 }
 
 func NewLogger(opts ...Option) FatalLogger {
-	l := logger{
+	l := &logger{
 		writers: map[Severity]io.Writer{
 			Debug:   os.Stdout,
 			Info:    os.Stdout,
@@ -31,9 +31,9 @@ func NewLogger(opts ...Option) FatalLogger {
 		},
 	}
 	for _, opt := range opts {
-		opt(&l)
+		opt(l)
 	}
-	return &l
+	return l
 }
 
 type logger struct {
