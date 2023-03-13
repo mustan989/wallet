@@ -3,6 +3,7 @@ module github.com/mustan989/wallet
 go 1.19
 
 require (
+	github.com/golang/mock v1.6.0
 	github.com/huandu/go-sqlbuilder v1.20.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.3.1

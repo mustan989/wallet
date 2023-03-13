@@ -11,10 +11,10 @@ import (
 	"github.com/labstack/echo/v4"
 
 	. "github.com/mustan989/wallet/app/config"
-	"github.com/mustan989/wallet/app/pkg/config"
-	"github.com/mustan989/wallet/app/pkg/logger"
-	"github.com/mustan989/wallet/app/pkg/postgres"
-	"github.com/mustan989/wallet/app/pkg/shutdown"
+	"github.com/mustan989/wallet/pkg/config"
+	"github.com/mustan989/wallet/pkg/logger"
+	"github.com/mustan989/wallet/pkg/postgres"
+	"github.com/mustan989/wallet/pkg/shutdown"
 )
 
 // TODO: mv to env

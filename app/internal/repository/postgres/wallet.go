@@ -14,9 +14,7 @@ import (
 	"github.com/mustan989/wallet/repository"
 )
 
-func NewWallet(pool Pool) repository.Wallet {
-	return &wallet{pool: pool}
-}
+func NewWallet(pool Pool) repository.Wallet { return &wallet{pool} }
 
 type wallet struct{ pool Pool }
 
