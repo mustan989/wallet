@@ -13,15 +13,15 @@ import (
 	mock_repository "github.com/mustan989/wallet/app/internal/repository/mock"
 	. "github.com/mustan989/wallet/app/internal/service"
 	"github.com/mustan989/wallet/model"
-	logger2 "github.com/mustan989/wallet/pkg/logger"
+	"github.com/mustan989/wallet/pkg/logger"
 	"github.com/mustan989/wallet/service"
 )
 
-var log logger2.Logger = logger2.NewLogger(logger2.WithWriters(map[logger2.Severity]io.Writer{
-	logger2.Debug:   io.Discard,
-	logger2.Info:    io.Discard,
-	logger2.Warning: io.Discard,
-	logger2.Error:   io.Discard,
+var log logger.Logger = logger.NewLogger(logger.WithWriters(map[logger.Severity]io.Writer{
+	logger.Debug:   io.Discard,
+	logger.Info:    io.Discard,
+	logger.Warning: io.Discard,
+	logger.Error:   io.Discard,
 }))
 
 func stringp(s string) *string     { return &s }
@@ -270,6 +270,11 @@ func TestWallet_GetAllError(t *testing.T) {
 			&service.WalletGetAllRequest{Filter: &model.WalletFilter{}},
 			errors.New("error"),
 		},
+		{
+			"count error",
+			&service.WalletGetAllRequest{Filter: &model.WalletFilter{}},
+			errors.New("error"),
+		},
 	}
 
 	for _, subtest := range subtests {
@@ -296,19 +301,22 @@ func TestWallet_GetByID(t *testing.T) {
 		input  *service.WalletGetByIDRequest
 		expect *service.WalletGetByIDResponse
 	}{
-		{"ID", &service.WalletGetByIDRequest{
-			ID: 1,
-		}, &service.WalletGetByIDResponse{&model.Wallet{
-			ID:          1,
-			Name:        "name",
-			Description: stringp("desc"),
-			Currency:    "KZT",
-			Amount:      9999,
-			Personal:    true,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			DeletedAt:   nil,
-		}}},
+		{
+			"ID", &service.WalletGetByIDRequest{
+				ID: 1,
+			},
+			&service.WalletGetByIDResponse{&model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+				DeletedAt:   nil,
+			}},
+		},
 	}
 
 	for _, subtest := range subtests {
@@ -330,4 +338,340 @@ func TestWallet_GetByID(t *testing.T) {
 }
 
 func TestWallet_GetByIDError(t *testing.T) {
+	subtests := [...]struct {
+		name  string
+		input *service.WalletGetByIDRequest
+		err   error
+	}{
+		{
+			"error",
+			&service.WalletGetByIDRequest{ID: 1},
+			errors.New("error"),
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			repo.EXPECT().
+				FindByID(ctx, subtest.input.ID).
+				Return(nil, subtest.err)
+
+			response, err := svc.GetByID(ctx, subtest.input)
+			require.Zero(t, response)
+			require.Equal(t, subtest.err, err)
+		})
+	}
+}
+
+func TestWallet_Create(t *testing.T) {
+	now := time.Now()
+
+	subtests := [...]struct {
+		name   string
+		input  *service.WalletCreateRequest
+		expect *service.WalletCreateResponse
+	}{
+		{
+			"Create",
+			&service.WalletCreateRequest{Data: &model.Wallet{
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+			}},
+			&service.WalletCreateResponse{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				DeletedAt:   nil,
+			}},
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			repo.EXPECT().
+				Create(ctx, subtest.input.Data).
+				DoAndReturn(func(_ context.Context, data *model.Wallet) error {
+					data.ID = 1
+					data.CreatedAt = subtest.expect.Data.CreatedAt
+					data.UpdatedAt = subtest.expect.Data.UpdatedAt
+					return nil
+				})
+
+			response, err := svc.Create(ctx, subtest.input)
+			require.NoError(t, err)
+			require.Equal(t, subtest.expect, response)
+		})
+	}
+}
+
+func TestWallet_CreateError(t *testing.T) {
+	subtests := [...]struct {
+		name  string
+		input *service.WalletCreateRequest
+		err   error
+	}{
+		{
+			"error",
+			&service.WalletCreateRequest{Data: &model.Wallet{
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+			}},
+			errors.New("error"),
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			repo.EXPECT().
+				Create(ctx, subtest.input.Data).
+				Return(subtest.err)
+
+			response, err := svc.Create(ctx, subtest.input)
+			require.Zero(t, response)
+			require.Equal(t, subtest.err, err)
+		})
+	}
+}
+
+func TestWallet_Update(t *testing.T) {
+	now := time.Now()
+
+	subtests := [...]struct {
+		name   string
+		input  *service.WalletUpdateRequest
+		expect *service.WalletUpdateResponse
+	}{
+		{
+			"Update",
+			&service.WalletUpdateRequest{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+			}},
+			&service.WalletUpdateResponse{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				CreatedAt:   now.Add(-24 * time.Hour),
+				UpdatedAt:   now,
+				DeletedAt:   nil,
+			}},
+		},
+		{
+			"Delete",
+			&service.WalletUpdateRequest{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				DeletedAt:   timep(now),
+			}},
+			&service.WalletUpdateResponse{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				CreatedAt:   now.Add(-24 * time.Hour),
+				UpdatedAt:   now,
+				DeletedAt:   timep(now),
+			}},
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			repo.EXPECT().
+				Update(ctx, subtest.input.Data).
+				DoAndReturn(func(_ context.Context, data *model.Wallet) error {
+					data.CreatedAt = subtest.expect.Data.CreatedAt
+					data.UpdatedAt = subtest.expect.Data.UpdatedAt
+					data.DeletedAt = subtest.expect.Data.DeletedAt
+					return nil
+				})
+
+			response, err := svc.Update(ctx, subtest.input)
+			require.NoError(t, err)
+			require.Equal(t, subtest.expect, response)
+		})
+	}
+}
+
+func TestWallet_UpdateError(t *testing.T) {
+	subtests := [...]struct {
+		name  string
+		input *service.WalletUpdateRequest
+		err   error
+	}{
+		{
+			"Update",
+			&service.WalletUpdateRequest{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+			}},
+			errors.New("error"),
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			repo.EXPECT().
+				Update(ctx, subtest.input.Data).
+				Return(subtest.err)
+
+			response, err := svc.Update(ctx, subtest.input)
+			require.Zero(t, response)
+			require.Equal(t, subtest.err, err)
+		})
+	}
+}
+
+func TestWallet_DeleteByID(t *testing.T) {
+	now := time.Now()
+
+	subtests := [...]struct {
+		name   string
+		input  *service.WalletDeleteByIDRequest
+		expect *service.WalletDeleteByIDResponse
+	}{
+		{
+			"Delete",
+			&service.WalletDeleteByIDRequest{ID: 1},
+			&service.WalletDeleteByIDResponse{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				CreatedAt:   now.Add(-24 * time.Hour),
+				UpdatedAt:   now.Add(-12 * time.Hour),
+				DeletedAt:   timep(now.Add(-12 * time.Hour)),
+			}},
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			repo.EXPECT().
+				FindByID(ctx, subtest.input.ID).
+				Return(subtest.expect.Data, nil)
+
+			repo.EXPECT().
+				DeleteByID(ctx, subtest.input.ID).
+				Return(subtest.expect.Data, nil)
+
+			response, err := svc.DeleteByID(ctx, subtest.input)
+			require.NoError(t, err)
+			require.Equal(t, subtest.expect, response)
+		})
+	}
+}
+
+func TestWallet_DeleteByIDSoft(t *testing.T) {
+	now := time.Now()
+
+	subtests := [...]struct {
+		name   string
+		input  *service.WalletDeleteByIDRequest
+		expect *service.WalletDeleteByIDResponse
+	}{
+		{
+			"Delete",
+			&service.WalletDeleteByIDRequest{ID: 1},
+			&service.WalletDeleteByIDResponse{Data: &model.Wallet{
+				ID:          1,
+				Name:        "name",
+				Description: stringp("desc"),
+				Currency:    "KZT",
+				Amount:      9999,
+				Personal:    true,
+				CreatedAt:   now.Add(-24 * time.Hour),
+				UpdatedAt:   now,
+				DeletedAt:   timep(now),
+			}},
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctl := gomock.NewController(t)
+			repo := mock_repository.NewMockWallet(ctl)
+			svc := NewWallet(repo, WithLogger(log))
+
+			data := subtest.expect.Data
+			repo.EXPECT().
+				FindByID(ctx, subtest.input.ID).
+				DoAndReturn(func(_ context.Context, id uint64) (*model.Wallet, error) {
+					data.DeletedAt = nil
+					return data, nil
+				})
+
+			repo.EXPECT().
+				Update(ctx, data).
+				DoAndReturn(func(_ context.Context, data *model.Wallet) error {
+					data.DeletedAt = subtest.expect.Data.DeletedAt
+					return nil
+				})
+
+			response, err := svc.DeleteByID(ctx, subtest.input)
+			require.NoError(t, err)
+			require.Equal(t, subtest.expect, response)
+		})
+	}
 }
