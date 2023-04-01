@@ -231,6 +231,36 @@ func TestWallet_FindAllError(t *testing.T) {
 	}
 }
 
+func TestWallet_FindAllScanError(t *testing.T) {
+	subtests := [...]struct {
+		name   string
+		filter *model.WalletFilter
+		args   []any
+		err    error
+	}{
+		{"scan error", &model.WalletFilter{}, nil, connErr},
+	}
+
+	pool, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer pool.Close()
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			repo := NewWallet(pool)
+
+			pool.ExpectQuery("SELECT (.+) FROM wallets").
+				WithArgs(subtest.args...).
+				WillReturnRows(pgxmock.NewRows(rowsAll).
+					AddRow(1, 2, 3, 4, 5, 6, 7, 8, 9))
+
+			data, err := repo.FindAll(context.Background(), subtest.filter)
+			require.Zero(t, data)
+			require.Error(t, err)
+		})
+	}
+}
+
 func TestWallet_FindByID(t *testing.T) {
 	subtests := [...]struct {
 		name   string
